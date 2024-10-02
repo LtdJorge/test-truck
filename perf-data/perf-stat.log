@@ -1,0 +1,20 @@
+perf stat -ad -r 100 target/release/test-truck
+
+ Performance counter stats for 'system wide' (100 runs):
+
+          14696.81 msec cpu-clock                        #   32.018 CPUs utilized               ( +-  1.95% )
+             10888      context-switches                 #  740.841 /sec                        ( +-  1.41% )
+               662      cpu-migrations                   #   45.044 /sec                        ( +-  1.09% )
+              4637      page-faults                      #  315.511 /sec                        ( +-  0.41% )
+        5601257388      cycles                           #    0.381 GHz                         ( +-  0.15% )  (85.67%)
+         108697063      stalled-cycles-frontend          #    1.94% frontend cycles idle        ( +-  1.10% )  (85.68%)
+       18892834491      instructions                     #    3.37  insn per cycle            
+                                                  #    0.01  stalled cycles per insn     ( +-  0.05% )  (85.67%)
+        3359348039      branches                         #  228.577 M/sec                       ( +-  0.05% )  (85.68%)
+           2506927      branch-misses                    #    0.07% of all branches             ( +-  0.70% )  (85.68%)
+        5653112410      L1-dcache-loads                  #  384.649 M/sec                       ( +-  0.10% )  (85.75%)
+          11436891      L1-dcache-load-misses            #    0.20% of all L1-dcache accesses   ( +-  2.35% )  (85.88%)
+   <not supported>      LLC-loads                                                             
+   <not supported>      LLC-load-misses                                                       
+
+           0.45902 +- 0.00898 seconds time elapsed  ( +-  1.96% )

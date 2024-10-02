@@ -1,0 +1,4 @@
+hyperfine ./target/release/test-truck --warmup 1 --shell=none
+Benchmark 1: ./target/release/test-truck
+  Time (mean ± σ):     434.1 ms ±   2.4 ms    [User: 1290.0 ms, System: 21.2 ms]
+  Range (min … max):   430.8 ms … 437.7 ms    10 runs

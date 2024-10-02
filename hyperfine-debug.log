@@ -1,0 +1,4 @@
+hyperfine ./target/debug/test-truck --warmup 1 --shell=none
+Benchmark 1: ./target/debug/test-truck
+  Time (mean ± σ):     10.290 s ±  0.073 s    [User: 30.162 s, System: 0.029 s]
+  Range (min … max):   10.179 s … 10.393 s    10 runs
