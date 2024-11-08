@@ -1,0 +1,34 @@
+diff --git a/src/cdt.rs b/src/cdt.rs
+index f2aacce..af528eb 100644
+--- a/src/cdt.rs
++++ b/src/cdt.rs
+@@ -547,7 +547,8 @@ where
+     /// around that.
+     pub fn add_constraint(&mut self, from: FixedVertexHandle, to: FixedVertexHandle) -> bool {
+         let initial_num_constraints = self.num_constraints();
+-        self.try_add_constraint_inner(from, to, |_| panic!("Constraint edges must not intersect."));
++        let _ = self
++            .try_add_constraint_inner(from, to, |_| panic!("Constraint edges must not intersect."));
+ 
+         self.num_constraints != initial_num_constraints
+     }
+@@ -900,8 +901,8 @@ where
+         R: FnMut(DirectedEdgeHandle<V, DE, CdtEdge<UE>, F>) -> ConflictResolution<V>,
+     {
+         let mut all_regions_intact = true;
+-        let mut conflict_groups = Vec::new();
+-        let mut current_group = Vec::new();
++        let mut conflict_groups = Vec::with_capacity(16);
++        let mut current_group = Vec::with_capacity(16);
+         let mut ignore_next_vertex = false;
+         for intersection in LineIntersectionIterator::new_from_handles(self, from, to) {
+             match intersection {
+@@ -1013,7 +1014,7 @@ where
+         final_vertex: FixedVertexHandle,
+         conflict_groups: Vec<InitialConflictRegion<V>>,
+     ) -> Vec<FixedDirectedEdgeHandle> {
+-        let mut constraint_edges = Vec::new();
++        let mut constraint_edges = Vec::with_capacity(16);
+         let mut last_vertex = None;
+ 
+         for InitialConflictRegion {

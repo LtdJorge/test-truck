@@ -1,0 +1,285 @@
+diff --git a/truck-geometry/Cargo.toml b/truck-geometry/Cargo.toml
+index 922f338c..50569986 100644
+--- a/truck-geometry/Cargo.toml
++++ b/truck-geometry/Cargo.toml
+@@ -16,7 +16,6 @@ serde = { version = "1.0.210", features = ["derive"] }
+ thiserror = "1.0.63"
+ truck-base = { version = "0.5.0", path = "../truck-base" }
+ truck-geotrait = { version = "0.4.0", path = "../truck-geotrait" }
+-smallvec = { version = "1.13.2", features = ["const_generics", "union", "serde", "const_new"] }
+ 
+ [dev-dependencies]
+ rand = "0.8.5"
+diff --git a/truck-geometry/src/nurbs/bspcurve.rs b/truck-geometry/src/nurbs/bspcurve.rs
+index 02c6494e..50eb46bd 100644
+--- a/truck-geometry/src/nurbs/bspcurve.rs
++++ b/truck-geometry/src/nurbs/bspcurve.rs
+@@ -934,8 +934,7 @@ impl<P: ControlPoint<f64> + Tolerance> Cut for BSplineCurve<P> {
+             Some(idx) => idx,
+             None => {
+                 let bspline = self.clone();
+-                let knot_vec = KnotVec::from(KnotVecInner::from_slice(&[t, self.knot_vec[0]]));
+-                // let knot_vec = KnotVec::from(vec![t, self.knot_vec[0]]);
++                let knot_vec = KnotVec::from(vec![t, self.knot_vec[0]]);
+                 let ctrl_pts = vec![P::origin()];
+                 *self = BSplineCurve::new(knot_vec, ctrl_pts);
+                 return bspline;
+diff --git a/truck-geometry/src/nurbs/bspsurface.rs b/truck-geometry/src/nurbs/bspsurface.rs
+index 5ddc8061..fcedac20 100644
+--- a/truck-geometry/src/nurbs/bspsurface.rs
++++ b/truck-geometry/src/nurbs/bspsurface.rs
+@@ -1391,8 +1391,7 @@ impl<P: ControlPoint<f64> + Tolerance> BSplineSurface<P> {
+             Some(idx) => idx,
+             None => {
+                 let bspline = self.clone();
+-                let uknot_vec = KnotVec::from(KnotVecInner::from_slice(&[u, self.vknot_vec()[0]]));
+-                // let uknot_vec = KnotVec::from(vec![u, self.vknot_vec()[0]]);
++                let uknot_vec = KnotVec::from(vec![u, self.vknot_vec()[0]]);
+                 let vknot_vec = self.vknot_vec().clone();
+                 let ctrl_pts = vec![vec![P::origin(); vknot_vec.len()]];
+                 *self = BSplineSurface::new((uknot_vec, vknot_vec), ctrl_pts);
+@@ -1588,7 +1587,7 @@ impl<P: ControlPoint<f64> + Tolerance> BSplineSurface<P> {
+         bspcurve0.syncro_knots(&mut bspcurve1);
+ 
+         let uknot_vec = bspcurve0.knot_vec().clone();
+-        let vknot_vec = KnotVec::from(KnotVecInner::from_slice(&[0.0, 0.0, 1.0, 1.0]));
++        let vknot_vec = KnotVec::from(vec![0.0, 0.0, 1.0, 1.0]);
+         let mut control_points = Vec::new();
+         for i in 0..bspcurve0.control_points().len() {
+             control_points.push(Vec::new());
+diff --git a/truck-geometry/src/nurbs/knot_vec.rs b/truck-geometry/src/nurbs/knot_vec.rs
+index d78f9c7a..c4a448b9 100644
+--- a/truck-geometry/src/nurbs/knot_vec.rs
++++ b/truck-geometry/src/nurbs/knot_vec.rs
+@@ -1,12 +1,11 @@
+ use super::*;
+ use crate::errors::Error;
+-use smallvec::SmallVec;
+ use std::slice::SliceIndex;
+ use std::vec::Vec;
+ 
+ impl KnotVec {
+     /// empty constructor
+-    pub const fn new() -> KnotVec { KnotVec(SmallVec::<[f64; 16]>::from_const([0.0; 16])) }
++    pub const fn new() -> KnotVec { KnotVec(Vec::new()) }
+ 
+     /// Returns the length of range.
+     /// # Examples
+@@ -143,16 +142,13 @@ impl KnotVec {
+     ///     for i in 0..4 { assert_near2!(res[i], ans[i]); }
+     /// }
+     /// ```
+-    pub fn bspline_basis_functions(&self, degree: usize, t: f64) -> KnotVecInner {
++    pub fn bspline_basis_functions(&self, degree: usize, t: f64) -> Vec<f64> {
+         match self.try_bspline_basis_functions(degree, t) {
+             Ok(got) => got,
+             Err(error) => panic!("{}", error),
+         }
+     }
+ 
+-    /// Number of items
+-    pub const N: usize = 16;
+-
+     /// Calculates B-spline basis functions at `t` with degree `degree`.
+     /// # Failures
+     /// - If the range of the knot vector is zero, returns [`Error::ZeroRange`].
+@@ -196,11 +192,7 @@ impl KnotVec {
+     ///     for i in 0..4 { assert_near2!(res[i], ans[i]); }
+     /// }
+     /// ```
+-    pub fn try_bspline_basis_functions(
+-        &self,
+-        degree: usize,
+-        t: f64,
+-    ) -> Result<SmallVec<[f64; Self::N]>> {
++    pub fn try_bspline_basis_functions(&self, degree: usize, t: f64) -> Result<Vec<f64>> {
+         let n = self.len() - 1;
+         if self[0].near(&self[n]) {
+             return Err(Error::ZeroRange);
+@@ -218,8 +210,7 @@ impl KnotVec {
+                 idx
+             }
+         };
+-        let mut res = SmallVec::<[f64; Self::N]>::from_elem(0.0, n);
+-        // vec![0.0; n];
++        let mut res = vec![0.0; n];
+         res[idx] = 1.0;
+ 
+         for k in 1..=degree {
+@@ -426,8 +417,7 @@ impl KnotVec {
+     /// ```
+     #[inline(always)]
+     pub fn sub_vec<I: SliceIndex<[f64], Output = [f64]>>(&self, range: I) -> KnotVec {
+-        // KnotVec(Vec::from(&self.0[range]))
+-        KnotVec(SmallVec::from_slice(&self.0[range]))
++        KnotVec(Vec::from(&self.0[range]))
+     }
+ 
+     /// To single-multi description. i.e. decompose the unique vector of knots and the vector of
+@@ -479,7 +469,7 @@ impl KnotVec {
+             }
+         }
+ 
+-        let mut vec = KnotVecInner::new();
++        let mut vec = Vec::new();
+         for i in 0..knots.len() {
+             for _ in 0..mults[i] {
+                 vec.push(knots[i]);
+@@ -488,7 +478,7 @@ impl KnotVec {
+         Ok(KnotVec(vec))
+     }
+     /// Constructs from `Vec<f64>`. do not sort, only check sorted.
+-    pub fn try_from(vec: KnotVecInner) -> Result<KnotVec> {
++    pub fn try_from(vec: Vec<f64>) -> Result<KnotVec> {
+         for i in 1..vec.len() {
+             if vec[i - 1] > vec[i] {
+                 return Err(Error::NotSortedVector);
+@@ -507,8 +497,7 @@ impl KnotVec {
+     /// );
+     /// ```
+     pub fn bezier_knot(degree: usize) -> KnotVec {
+-        let mut vec = KnotVecInner::from_elem(0.0, degree + 1);
+-        // vec![0.0; degree + 1];
++        let mut vec = vec![0.0; degree + 1];
+         vec.extend(std::iter::repeat(1.0).take(degree + 1));
+         KnotVec(vec)
+     }
+@@ -523,15 +512,14 @@ impl KnotVec {
+     /// );
+     /// ```
+     pub fn uniform_knot(degree: usize, division: usize) -> KnotVec {
+-        let mut vec = KnotVecInner::from_elem(0.0, degree + 1);
+-        // vec![0.0; degree + 1];
++        let mut vec = vec![0.0; degree + 1];
+         vec.extend((1..division).map(|i| (i as f64) / (division as f64)));
+         vec.extend(std::iter::repeat(1.0).take(degree + 1));
+         KnotVec(vec)
+     }
+ }
+ 
+-impl From<KnotVecInner> for KnotVec {
++impl From<Vec<f64>> for KnotVec {
+     /// constructs from `Vec<f64>`. The vector will sorted by the order.
+     /// ```
+     /// use truck_geometry::prelude::KnotVec;
+@@ -539,13 +527,13 @@ impl From<KnotVecInner> for KnotVec {
+     /// let arr : Vec<f64> = knot_vec.into();
+     /// assert_eq!(arr, vec![0.0, 1.0, 2.0, 3.0]);
+     /// ```
+-    fn from(mut vec: KnotVecInner) -> KnotVec {
++    fn from(mut vec: Vec<f64>) -> KnotVec {
+         vec.sort_by(|a, b| a.partial_cmp(b).unwrap());
+         KnotVec(vec)
+     }
+ }
+ 
+-impl From<&KnotVecInner> for KnotVec {
++impl From<&Vec<f64>> for KnotVec {
+     /// Constructs by the reference of vector. The clone of vector is sorted by the order.
+     /// ```
+     /// use truck_geometry::prelude::KnotVec;
+@@ -554,14 +542,14 @@ impl From<&KnotVecInner> for KnotVec {
+     /// assert_eq!(arr, vec![0.0, 1.0, 2.0, 3.0]);
+     /// ```
+     #[inline(always)]
+-    fn from(vec: &KnotVecInner) -> KnotVec {
++    fn from(vec: &Vec<f64>) -> KnotVec {
+         let mut copy_vec = vec.clone();
+         copy_vec.sort_by(|a, b| a.partial_cmp(b).unwrap());
+         KnotVec(copy_vec)
+     }
+ }
+ 
+-impl From<KnotVec> for KnotVecInner {
++impl From<KnotVec> for Vec<f64> {
+     /// `KnotVec` into `Vec<f64>`
+     /// ```
+     /// use truck_geometry::prelude::KnotVec;
+@@ -571,13 +559,13 @@ impl From<KnotVec> for KnotVecInner {
+     /// assert_eq!(vec, vec0);
+     /// ```
+     #[inline(always)]
+-    fn from(knotvec: KnotVec) -> KnotVecInner { knotvec.0 }
++    fn from(knotvec: KnotVec) -> Vec<f64> { knotvec.0 }
+ }
+ 
+ impl FromIterator<f64> for KnotVec {
+     #[inline(always)]
+     fn from_iter<I: IntoIterator<Item = f64>>(iter: I) -> KnotVec {
+-        KnotVec::try_from(iter.into_iter().collect::<KnotVecInner>()).unwrap()
++        KnotVec::try_from(iter.into_iter().collect::<Vec<_>>()).unwrap()
+     }
+ }
+ 
+@@ -589,9 +577,9 @@ impl<'a> IntoIterator for &'a KnotVec {
+ }
+ 
+ impl std::ops::Deref for KnotVec {
+-    type Target = KnotVecInner;
++    type Target = Vec<f64>;
+     #[inline(always)]
+-    fn deref(&self) -> &KnotVecInner { &self.0 }
++    fn deref(&self) -> &Vec<f64> { &self.0 }
+ }
+ 
+ impl AsRef<[f64]> for KnotVec {
+@@ -602,7 +590,7 @@ impl AsRef<[f64]> for KnotVec {
+ impl<'de> Deserialize<'de> for KnotVec {
+     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+     where D: serde::Deserializer<'de> {
+-        let vec = KnotVecInner::deserialize(deserializer)?;
++        let vec = Vec::<f64>::deserialize(deserializer)?;
+         Self::try_from(vec).map_err(serde::de::Error::custom)
+     }
+ }
+diff --git a/truck-geometry/src/nurbs/mod.rs b/truck-geometry/src/nurbs/mod.rs
+index eca3a5c5..24a55313 100644
+--- a/truck-geometry/src/nurbs/mod.rs
++++ b/truck-geometry/src/nurbs/mod.rs
+@@ -1,13 +1,9 @@
+ use crate::{prelude::*, *};
+-use smallvec::SmallVec;
+ use truck_base::cgmath64::control_point::ControlPoint;
+ 
+-/// Inner of KnotVec
+-pub type KnotVecInner = SmallVec<[f64; 16]>;
+-
+ /// knot vector
+ #[derive(Clone, PartialEq, Debug, Default, Serialize)]
+-pub struct KnotVec(KnotVecInner);
++pub struct KnotVec(Vec<f64>);
+ 
+ /// B-spline curve
+ /// # Examples
+diff --git a/truck-stepio/src/in/mod.rs b/truck-stepio/src/in/mod.rs
+index dca42c94..a34a995c 100644
+--- a/truck-stepio/src/in/mod.rs
++++ b/truck-stepio/src/in/mod.rs
+@@ -1126,7 +1126,7 @@ fn uniform_knots(num_ctrl: usize, degree: usize) -> truck::Result<KnotVec> {
+     KnotVec::try_from(
+         (0..degree + num_ctrl + 1)
+             .map(|i| i as f64 - degree as f64)
+-            .collect::<KnotVecInner>(),
++            .collect::<Vec<_>>(),
+     )
+ }
+ 
+diff --git a/truck-topology/src/shell.rs b/truck-topology/src/shell.rs
+index 7b1fe860..29005616 100644
+--- a/truck-topology/src/shell.rs
++++ b/truck-topology/src/shell.rs
+@@ -1,6 +1,5 @@
+ use crate::*;
+ use rayon::prelude::*;
+-//use rayon::iter::MinLen;
+ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+ use truck_base::entry_map::FxEntryMap as EntryMap;
+ 
+@@ -63,7 +62,6 @@ impl<P, C, S> Shell<P, C, S> {
+         C: Send,
+         S: Send, {
+         self.par_iter()
+-	//.with_min_len(8)
+     }
+ 
+     /// Returns a mutable iterator over the faces. Practically, an alias of `par_iter_mut()`.

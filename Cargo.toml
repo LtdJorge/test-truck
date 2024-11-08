@@ -9,9 +9,27 @@ truck-modeling = "0.6.0"
 truck-polymesh = "0.6.0"
 truck-shapeops = "0.4.0"
 
+dhat = { version = "0.3.3", optional = true }
+
+[features]
+default = []
+dhat = ["dep:dhat"]
+
 [profile.release]
 opt-level = 3
 debug = true
 lto = "fat"
 codegen-units = 1
 #panic = "abort"
+
+[patch.crates-io]
+truck-base = { path = "truck/truck-base" }
+truck-geometry = { path = "truck/truck-geometry" }
+truck-geotrait = { path = "truck/truck-geotrait" }
+truck-meshalgo = { path = "truck/truck-meshalgo" }
+truck-modeling = { path = "truck/truck-modeling" }
+truck-polymesh = { path = "truck/truck-polymesh" }
+truck-shapeops = { path = "truck/truck-shapeops" }
+truck-topology = { path = "truck/truck-topology" }
+
+spade = { path = "spade" }
